@@ -6,12 +6,14 @@ import { Transfer } from "@/types";
 import { downloadCSV } from "@/lib/csv";
 import { DONATION_ADDRESS } from "@/lib/constants";
 import DonationSection from "@/components/DonationSection";
+import { isScamToken } from "@/lib/utils";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [hideScam, setHideScam] = useState(false);
 
   const handleGenerate = async () => {
     setError("");
@@ -41,6 +43,10 @@ export default function Home() {
 
   const shorten = (hex: string) =>
     hex.length > 20 ? `${hex.slice(0, 6)}...${hex.slice(-4)}` : hex;
+
+  const displayedTransfers = hideScam
+  ? transfers.filter((tx) => !isScamToken(tx.token))
+  : transfers;
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-16">
@@ -179,16 +185,31 @@ export default function Home() {
         {/* Results table with CSV download */}
         {!loading && transfers.length > 0 && (
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700 overflow-x-auto">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
-                Token Transfers ({transfers.length})
+                Token Transfers ({displayedTransfers.length}{hideScam ? " (scam hidden)" : ""})
               </h2>
-              <button
-                onClick={() => downloadCSV(transfers)}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                ⬇ Download CSV
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Toggle switch */}
+                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-none">
+                  <span>Hide spam</span>
+                  <div className="relative inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={hideScam}
+                      onChange={(e) => setHideScam(e.target.checked)}
+                    />
+                    <div className="w-9 h-5 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                  </div>
+                </label>
+                <button
+                  onClick={() => downloadCSV(displayedTransfers)}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  ⬇ Download CSV
+                </button>
+              </div>
             </div>
             <table className="w-full text-left text-sm">
               <thead>
@@ -202,7 +223,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {transfers.map((tx, idx) => (
+                {displayedTransfers.map((tx, idx) => (
                   <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                     <td className="py-2 pr-4">{tx.date}</td>
                     <td className="py-2 pr-4 font-medium">{tx.token}</td>
@@ -223,13 +244,20 @@ export default function Home() {
                 ))}
               </tbody>
             </table>
+            {hideScam && displayedTransfers.length < transfers.length && (
+              <p className="text-xs text-gray-500 mt-3">
+                {transfers.length - displayedTransfers.length} spam token(s) hidden.
+              </p>
+            )}
           </div>
         )}
 
         {/* Empty state */}
-        {!loading && transfers.length === 0 && !error && (
+        {!loading && displayedTransfers.length === 0 && !error && (
           <div className="text-gray-500 dark:text-gray-400 text-sm">
-            No transactions to display. Try entering a different wallet address.
+            {transfers.length === 0
+              ? "No transactions to display. Try entering a different wallet address."
+              : "All transactions hidden by spam filter."}
           </div>
         )}
 
