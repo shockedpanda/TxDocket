@@ -74,9 +74,31 @@ export default function Home() {
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors"
+            className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
           >
-            {loading ? "Loading..." : "Generate Schedule"}
+            {loading && (
+              <svg
+                className="animate-spin h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            )}
+            {loading ? "Fetching Transactions..." : "Generate Schedule"}
           </button>
           <p className="text-xs text-gray-500 dark:text-gray-400 text-left">
             🔒 No private keys or wallet connections are ever required.
@@ -113,6 +135,40 @@ export default function Home() {
           />
         </div>
 
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700 overflow-x-auto animate-pulse">
+            <div className="flex justify-between items-center mb-4">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+            </div>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12"></div></th>
+                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div></th>
+                  <th className="py-2 pr-4 text-right"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div></th>
+                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div></th>
+                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div></th>
+                  <th className="py-2"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, i) => (
+                  <tr key={i} className="border-b border-gray-100 dark:border-gray-700">
+                    <td className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div></td>
+                    <td className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div></td>
+                    <td className="py-2 pr-4 text-right"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div></td>
+                    <td className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div></td>
+                    <td className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div></td>
+                    <td className="py-2"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28"></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         {/* Error message */}
         {error && (
           <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 p-4 rounded-xl text-left">
@@ -120,8 +176,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Results section with CSV download */}
-        {transfers.length > 0 && (
+        {/* Results table with CSV download */}
+        {!loading && transfers.length > 0 && (
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700 overflow-x-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-left">
@@ -170,6 +226,7 @@ export default function Home() {
           </div>
         )}
 
+        {/* Empty state */}
         {!loading && transfers.length === 0 && !error && (
           <div className="text-gray-500 dark:text-gray-400 text-sm">
             No transactions to display. Try entering a different wallet address.
