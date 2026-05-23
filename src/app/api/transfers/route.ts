@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
         to: tx.to?.hash || "",
         txHash: tx.transaction_hash || "",
         type: "ERC-20",
+        tokenAddress: token.address_hash || "",
       };
     });
 

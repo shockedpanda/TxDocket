@@ -7,6 +7,7 @@ import { downloadCSV } from "@/lib/csv";
 import { DONATION_ADDRESS } from "@/lib/constants";
 import DonationSection from "@/components/DonationSection";
 import { isScamToken } from "@/lib/utils";
+import StablecoinSummary from "@/components/StablecoinSummary";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -185,6 +186,7 @@ export default function Home() {
         {/* Results table with CSV download */}
         {!loading && transfers.length > 0 && (
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700 overflow-x-auto">
+            <StablecoinSummary transfers={transfers} walletAddress={walletAddress} />
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
                 Token Transfers ({displayedTransfers.length}{hideScam ? " (scam hidden)" : ""})

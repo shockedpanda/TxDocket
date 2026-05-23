@@ -6,4 +6,5 @@ export interface Transfer {
   from: string;
   to: string;
   txHash: string;
+  tokenAddress: string; // new
 }
