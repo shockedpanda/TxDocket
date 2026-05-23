@@ -12,8 +12,8 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     );
   }
-
-  try {
+  
+    try {
     const fetchWithRetry = async (url: string, retries = 2): Promise<Response> => {
       for (let attempt = 0; attempt < retries; attempt++) {
         const res = await fetch(url);
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const response = await fetchWithRetry(
       `${BLOCKSCOUT_BASE_URL}/addresses/${address}/token-transfers?type=ERC-20`
     );
+
     const data = await response.json();
     const items = data.items || [];
 

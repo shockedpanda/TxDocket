@@ -15,6 +15,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hideScam, setHideScam] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const handleGenerate = async () => {
     setError("");
@@ -27,7 +29,11 @@ export default function Home() {
 
     setLoading(true);
     try {
-      const res = await fetch(`/api/transfers?address=${walletAddress.trim()}`);
+      let apiUrl = `/api/transfers?address=${walletAddress.trim()}`;
+      if (startDate) apiUrl += `&fromDate=${startDate}`;
+      if (endDate) apiUrl += `&toDate=${endDate}`;
+
+      const res = await fetch(apiUrl);
       const data = await res.json();
 
       if (!res.ok) {
@@ -48,7 +54,16 @@ export default function Home() {
   const displayedTransfers = hideScam
   ? transfers.filter((tx) => !isScamToken(tx.token))
   : transfers;
-
+  // New date filter – applied on top of the scam filter
+  const filteredByDate = displayedTransfers.filter((tx) => {
+    if (!startDate && !endDate) return true;
+    const txDate = new Date(tx.date).getTime();
+    const start = startDate ? new Date(startDate + "T00:00:00").getTime() : null;
+    const end = endDate ? new Date(endDate + "T23:59:59").getTime() : null;
+    if (start && txDate < start) return false;
+    if (end && txDate > end) return false;
+    return true;
+  });
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-16">
       <div className="max-w-4xl w-full text-center space-y-8">
@@ -78,6 +93,30 @@ export default function Home() {
             onChange={(e) => setWalletAddress(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
           />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 text-left">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+              <div className="flex-1 text-left">
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-left">
+              ⓘ Date filter applies to the latest 50 fetched transfers. For historical data beyond the latest 50, API upgrades are planned.
+            </p>
+
           <button
             onClick={handleGenerate}
             disabled={loading}
@@ -189,7 +228,7 @@ export default function Home() {
             <StablecoinSummary transfers={transfers} walletAddress={walletAddress} />
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
-                Token Transfers ({displayedTransfers.length}{hideScam ? " (scam hidden)" : ""})
+                Token Transfers ({filteredByDate.length}{hideScam ? " (scam hidden)" : ""})
               </h2>
               <div className="flex items-center gap-3">
                 {/* Toggle switch */}
@@ -206,7 +245,7 @@ export default function Home() {
                   </div>
                 </label>
                 <button
-                  onClick={() => downloadCSV(displayedTransfers)}
+                  onClick={() => downloadCSV(filteredByDate)}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   ⬇ Download CSV
@@ -225,7 +264,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {displayedTransfers.map((tx, idx) => (
+                {filteredByDate.map((tx, idx) => (
                   <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                     <td className="py-2 pr-4">{tx.date}</td>
                     <td className="py-2 pr-4 font-medium">{tx.token}</td>
@@ -246,6 +285,11 @@ export default function Home() {
                 ))}
               </tbody>
             </table>
+            {(startDate || endDate) && (
+              <p className="text-xs text-gray-500 mt-3">
+                Showing transfers between {startDate || "any"} and {endDate || "any"}.
+              </p>
+            )}
             {hideScam && displayedTransfers.length < transfers.length && (
               <p className="text-xs text-gray-500 mt-3">
                 {transfers.length - displayedTransfers.length} spam token(s) hidden.
@@ -255,7 +299,7 @@ export default function Home() {
         )}
 
         {/* Empty state */}
-        {!loading && displayedTransfers.length === 0 && !error && (
+        {!loading && filteredByDate.length === 0 && !error && (
           <div className="text-gray-500 dark:text-gray-400 text-sm">
             {transfers.length === 0
               ? "No transactions to display. Try entering a different wallet address."
