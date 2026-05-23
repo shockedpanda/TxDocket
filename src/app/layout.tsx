@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Base Wallet Records",
-  description: "Turn Base wallet activity into clean transaction schedules.",
+  title: "TxDocket – Base Wallet Activity Docs",
+  description: "TxDocket turns raw Base wallet activity into clean, review‑ready transaction schedules.",
 };
 
 export default function RootLayout({

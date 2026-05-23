@@ -1,8 +1,8 @@
-# Base Wallet Records
+# TxDocket
 
-Turn Base wallet activity into clean transaction schedules.
+Clean transaction schedules for Base wallets.
 
-A free tool that helps Web3 teams, accountants, and operators turn raw onchain transactions into finance/accounting-ready records.
+A free tool that helps Web3 teams, accountants, and operators turn raw onchain transactions into finance/accounting‑ready records.
 
 ## Features
 

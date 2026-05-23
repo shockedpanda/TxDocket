@@ -70,10 +70,10 @@ export default function Home() {
         {/* Title & headline */}
         <div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            Base Wallet Records
+            TxDocket
           </h1>
           <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-            Turn Base wallet activity into clean transaction schedules.
+            Clean transaction schedules for Base wallets.
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export default function Home() {
           <Card
             emoji="📋"
             title="Review-Ready Reports"
-            description="Get pre‑formatted wallet activity packs for your accountant, auditor, or team."
+            description="TxDocket packs wallet activity into a clear handover ready for your accountant, auditor, or team."
           />
         </div>
 
