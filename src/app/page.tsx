@@ -20,10 +20,24 @@ export default function Home() {
   const [brief, setBrief] = useState("");
   const [briefLoading, setBriefLoading] = useState(false);
   const [briefError, setBriefError] = useState("");
+  const [selectedChain, setSelectedChain] = useState("base");
+
+  // Map chain to block explorer URL for tx links
+  const getExplorerUrl = (chain: string, txHash: string) => {
+    const explorers: Record<string, string> = {
+      base: "https://basescan.org/tx/",
+      ethereum: "https://etherscan.io/tx/",
+      arbitrum: "https://arbiscan.io/tx/",
+      optimism: "https://optimistic.etherscan.io/tx/",
+    };
+    return (explorers[chain] || explorers.base) + txHash;
+  };
 
   const handleGenerate = async () => {
     setError("");
     setTransfers([]);
+    setBrief("");          // ← clear old brief
+    setBriefError("");     // ← clear any brief errors
 
     if (!walletAddress.trim()) {
       setError("Please enter a wallet address.");
@@ -32,9 +46,18 @@ export default function Home() {
 
     setLoading(true);
     try {
-      let apiUrl = `/api/transfers?address=${walletAddress.trim()}`;
-      if (startDate) apiUrl += `&fromDate=${startDate}`;
-      if (endDate) apiUrl += `&toDate=${endDate}`;
+      let apiUrl: string;
+      if (selectedChain === "base") {
+        // Base uses Blockscout (existing route) – date filters client‑side only
+        apiUrl = `/api/transfers?address=${walletAddress.trim()}`;
+        if (startDate) apiUrl += `&fromDate=${startDate}`;
+        if (endDate) apiUrl += `&toDate=${endDate}`;
+      } else {
+        // Other chains use Etherscan V2 – date filters work server‑side, limit 200
+        apiUrl = `/api/transfers?chain=${encodeURIComponent(selectedChain)}&address=${walletAddress.trim()}&limit=10000`;
+        if (startDate) apiUrl += `&fromDate=${startDate}`;
+        if (endDate) apiUrl += `&toDate=${endDate}`;
+      }
 
       const res = await fetch(apiUrl);
       const data = await res.json();
@@ -51,7 +74,7 @@ export default function Home() {
     }
   };
 
-    const handleGenerateBrief = async () => {
+  const handleGenerateBrief = async () => {
     setBriefError("");
     setBrief("");
     setBriefLoading(true);
@@ -61,7 +84,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          transfers: transfers, // raw data; can use displayedTransfers if you prefer
+          transfers: transfers,
           walletAddress: walletAddress,
         }),
       });
@@ -83,9 +106,10 @@ export default function Home() {
     hex.length > 20 ? `${hex.slice(0, 6)}...${hex.slice(-4)}` : hex;
 
   const displayedTransfers = hideScam
-  ? transfers.filter((tx) => !isScamToken(tx.token))
-  : transfers;
-  // New date filter – applied on top of the scam filter
+    ? transfers.filter((tx) => !isScamToken(tx.token))
+    : transfers;
+
+  // Client‑side date filter (used for Base; for other chains it's redundant but harmless)
   const filteredByDate = displayedTransfers.filter((tx) => {
     if (!startDate && !endDate) return true;
     const txDate = new Date(tx.date).getTime();
@@ -95,6 +119,7 @@ export default function Home() {
     if (end && txDate > end) return false;
     return true;
   });
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-16">
       <div className="max-w-4xl w-full text-center space-y-8">
@@ -104,17 +129,30 @@ export default function Home() {
             TxDocket
           </h1>
           <p className="mt-4 text-xl text-gray-600 dark:text-gray-300">
-            Clean transaction schedules for Base wallets.
+            Clean transaction schedules for EVM wallets.
           </p>
         </div>
 
         {/* Wallet address input */}
         <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 space-y-4 border border-gray-200 dark:border-gray-700">
+          <div className="mb-4 text-left">
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Chain</label>
+            <select
+              value={selectedChain}
+              onChange={(e) => setSelectedChain(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="base">Base</option>
+              <option value="ethereum">Ethereum</option>
+              <option value="arbitrum">Arbitrum</option>
+              <option value="optimism">Optimism</option>
+            </select>
+          </div>
           <label
             htmlFor="wallet"
             className="block text-sm font-medium text-left text-gray-700 dark:text-gray-200"
           >
-            Enter a public Base wallet address
+            Enter a public wallet address
           </label>
           <input
             id="wallet"
@@ -124,29 +162,29 @@ export default function Home() {
             onChange={(e) => setWalletAddress(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
           />
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 text-left">
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
-              <div className="flex-1 text-left">
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                />
-              </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 text-left">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 text-left">
-              ⓘ Date filter applies to the latest 50 fetched transfers. For historical data beyond the latest 50, API upgrades are planned.
-            </p>
+            <div className="flex-1 text-left">
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-left">
+              ⓘ Base returns the latest 50 transfers only — date filters are applied after fetching. Other chains support server‑side date filtering and return up to 10,000 transfers. API upgrades for historical Base data are planned.
+          </p>
 
           <button
             onClick={handleGenerate}
@@ -198,7 +236,7 @@ export default function Home() {
           <Card
             emoji="📊"
             title="Free CSV Schedule"
-            description="Download a clean transaction schedule of your Base wallet activity, ready for spreadsheets."
+            description="Download a clean transaction schedule of your wallet activity, ready for spreadsheets."
           />
           <Card
             emoji="💵"
@@ -257,6 +295,7 @@ export default function Home() {
         {!loading && transfers.length > 0 && (
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700 overflow-x-auto">
             <StablecoinSummary transfers={transfers} walletAddress={walletAddress} />
+
             {/* TxDocket Brief section */}
             <div className="mt-6">
               {!brief && !briefLoading && (
@@ -302,15 +341,24 @@ export default function Home() {
                   </p>
                 </div>
               )}
-            </div>          
+            </div>
+
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
-                Token Transfers ({filteredByDate.length}{hideScam ? " (scam hidden)" : ""})
+                Token Transfers ({filteredByDate.length}{hideScam ? " (spam hidden)" : ""})
               </h2>
               <div className="flex items-center gap-3">
                 {/* Toggle switch */}
                 <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 cursor-pointer select-none">
-                  <span>Hide spam</span>
+                  <span>
+                    Hide spam
+                    <span
+                      title="Hides tokens whose names contain suspicious keywords (e.g. airdrop, claim, t.me). Does not guarantee a token is safe — always DYOR."
+                      className="ml-1 cursor-help text-gray-400 dark:text-gray-500 text-xs"
+                    >
+                      ⓘ
+                    </span>
+                  </span>
                   <div className="relative inline-flex items-center">
                     <input
                       type="checkbox"
@@ -344,13 +392,21 @@ export default function Home() {
                 {filteredByDate.map((tx, idx) => (
                   <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
                     <td className="py-2 pr-4">{tx.date}</td>
-                    <td className="py-2 pr-4 font-medium">{tx.token}</td>
-                    <td className="py-2 pr-4 text-right">{tx.amount}</td>
-                    <td className="py-2 pr-4 text-xs font-mono">{shorten(tx.from)}</td>
-                    <td className="py-2 pr-4 text-xs font-mono">{shorten(tx.to)}</td>
+                    <td className="py-2 pr-4 font-medium max-w-[120px] truncate" title={tx.token}>
+                      {tx.token}
+                    </td>
+                    <td className="py-2 pr-4 text-right max-w-[100px] truncate" title={tx.amount}>
+                      {tx.amount}
+                    </td>
+                    <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.from}>
+                      {shorten(tx.from)}
+                    </td>
+                    <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.to}>
+                      {shorten(tx.to)}
+                    </td>
                     <td className="py-2 text-xs font-mono">
                       <a
-                        href={`https://basescan.org/tx/${tx.txHash}`}
+                        href={getExplorerUrl(selectedChain, tx.txHash)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:underline"

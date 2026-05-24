@@ -1,6 +1,16 @@
 // src/components/StablecoinSummary.tsx
 import { Transfer } from "@/types";
-import { STABLECOINS } from "@/lib/constants";
+
+const STABLECOIN_SYMBOLS = new Set([
+  "USDC",
+  "USDT",
+  "DAI",
+  "BUSD",
+  "TUSD",
+  "USDP",
+  "GUSD",
+  "FRAX",
+]);
 
 interface StablecoinSummaryProps {
   transfers: Transfer[];
@@ -10,16 +20,16 @@ interface StablecoinSummaryProps {
 export default function StablecoinSummary({ transfers, walletAddress }: StablecoinSummaryProps) {
   const lowerAddress = walletAddress.toLowerCase();
 
-  // Filter only stablecoin transfers
+  // Filter only transfers whose token symbol is a known stablecoin
   const stableTransfers = transfers.filter(
-    (tx) => tx.tokenAddress && STABLECOINS[tx.tokenAddress.toLowerCase()]
+    (tx) => tx.token && STABLECOIN_SYMBOLS.has(tx.token.toUpperCase())
   );
 
   if (stableTransfers.length === 0) {
     return (
       <div className="bg-white dark:bg-gray-800 shadow rounded-2xl p-6 border border-gray-200 dark:border-gray-700 text-left">
         <h3 className="text-lg font-semibold mb-2">💵 Stablecoin Flow</h3>
-        <p className="text-sm text-gray-500">No stablecoin activity detected.</p>
+        <p className="text-sm text-gray-500">No stablecoin activity detected in this dataset.</p>
       </div>
     );
   }
@@ -28,23 +38,22 @@ export default function StablecoinSummary({ transfers, walletAddress }: Stableco
   const totals: Record<string, { received: number; sent: number }> = {};
 
   stableTransfers.forEach((tx) => {
-    const symbol = STABLECOINS[tx.tokenAddress.toLowerCase()] || tx.token;
+    const symbol = tx.token.toUpperCase();
     const amount = parseFloat(tx.amount) || 0;
 
     if (!totals[symbol]) {
       totals[symbol] = { received: 0, sent: 0 };
     }
 
-    // Determine direction by comparing 'from' and 'to' with the queried address
+    // Determine direction
     if (tx.to.toLowerCase() === lowerAddress) {
       totals[symbol].received += amount;
     } else if (tx.from.toLowerCase() === lowerAddress) {
       totals[symbol].sent += amount;
     }
-    // else: both not matching? shouldn't happen, but ignore
+    // else: both not matching (shouldn't happen)
   });
 
-  // Calculate overall totals
   const totalReceived = Object.values(totals).reduce((sum, t) => sum + t.received, 0);
   const totalSent = Object.values(totals).reduce((sum, t) => sum + t.sent, 0);
   const netFlow = totalReceived - totalSent;
@@ -72,7 +81,6 @@ export default function StablecoinSummary({ transfers, walletAddress }: Stableco
           </p>
         </div>
       </div>
-      {/* Per token breakdown */}
       <div className="mt-4 space-y-2">
         {Object.entries(totals).map(([symbol, data]) => (
           <div key={symbol} className="flex justify-between text-sm">

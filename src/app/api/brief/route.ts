@@ -35,7 +35,6 @@ The brief should include:
 3. Stablecoin activity summary (if any USDC, USDT, DAI appear, estimate total inflow/outflow based on the data provided)
 4. Notable counterparties (addresses that appear frequently)
 5. Any unusual patterns (very large amounts, spam tokens, repetitive transfers)
-6. A disclaimer: "This brief is AI-generated and does not constitute financial, tax, or legal advice. Always consult a qualified professional."
 
 Keep the tone professional and concise. Do not invent data. If stablecoins are not present, state that. Limit the brief to 300 words.
 `.trim();
@@ -67,7 +66,7 @@ Keep the tone professional and concise. Do not invent data. If stablecoins are n
           body: JSON.stringify({
             model,
             messages: [{ role: "user", content: prompt }],
-            max_tokens: 600,
+            max_tokens: 800,
             temperature: 0.3,
           }),
         });
