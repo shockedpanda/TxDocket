@@ -17,6 +17,9 @@ export default function Home() {
   const [hideScam, setHideScam] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [brief, setBrief] = useState("");
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefError, setBriefError] = useState("");
 
   const handleGenerate = async () => {
     setError("");
@@ -45,6 +48,34 @@ export default function Home() {
       setError(err.message || "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  };
+
+    const handleGenerateBrief = async () => {
+    setBriefError("");
+    setBrief("");
+    setBriefLoading(true);
+
+    try {
+      const res = await fetch("/api/brief", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transfers: transfers, // raw data; can use displayedTransfers if you prefer
+          walletAddress: walletAddress,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to generate brief");
+      }
+
+      setBrief(data.brief);
+    } catch (err: any) {
+      setBriefError(err.message || "Something went wrong.");
+    } finally {
+      setBriefLoading(false);
     }
   };
 
@@ -226,6 +257,52 @@ export default function Home() {
         {!loading && transfers.length > 0 && (
           <div className="bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6 border border-gray-200 dark:border-gray-700 overflow-x-auto">
             <StablecoinSummary transfers={transfers} walletAddress={walletAddress} />
+            {/* TxDocket Brief section */}
+            <div className="mt-6">
+              {!brief && !briefLoading && (
+                <button
+                  onClick={handleGenerateBrief}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors"
+                >
+                  ✨ Generate TxDocket Brief
+                </button>
+              )}
+
+              {briefLoading && (
+                <div className="text-center py-4 animate-pulse text-gray-500">
+                  Generating brief...
+                </div>
+              )}
+
+              {briefError && (
+                <div className="bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 p-4 rounded-xl text-left">
+                  {briefError}
+                </div>
+              )}
+
+              {brief && (
+                <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6 border border-gray-200 dark:border-gray-700 text-left">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">📋 TxDocket Brief</h3>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(brief);
+                        alert("Brief copied to clipboard");
+                      }}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      📋 Copy
+                    </button>
+                  </div>
+                  <div className="prose dark:prose-invert max-w-none text-sm whitespace-pre-line">
+                    {brief}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-4 border-t pt-4 dark:border-gray-700">
+                    ⚠️ AI-generated summary. Not financial, tax, or legal advice. Always consult a qualified professional.
+                  </p>
+                </div>
+              )}
+            </div>          
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
                 Token Transfers ({filteredByDate.length}{hideScam ? " (scam hidden)" : ""})

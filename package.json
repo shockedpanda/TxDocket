@@ -1,5 +1,5 @@
 {
-  "name": "base-wallet-records",
+  "name": "txdocket",
   "version": "0.1.0",
   "private": true,
   "scripts": {
