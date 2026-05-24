@@ -8,6 +8,7 @@ import { DONATION_ADDRESS } from "@/lib/constants";
 import DonationSection from "@/components/DonationSection";
 import { isScamToken } from "@/lib/utils";
 import StablecoinSummary from "@/components/StablecoinSummary";
+import FeedbackSection from "@/components/FeedbackSection";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -439,6 +440,9 @@ export default function Home() {
               : "All transactions hidden by spam filter."}
           </div>
         )}
+        
+        {/* Feedback & suggestions */}
+        <FeedbackSection />
 
         {/* Donation section */}
         <DonationSection address={DONATION_ADDRESS} />
