@@ -9,6 +9,7 @@ import DonationSection from "@/components/DonationSection";
 import { isScamToken } from "@/lib/utils";
 import StablecoinSummary from "@/components/StablecoinSummary";
 import FeedbackSection from "@/components/FeedbackSection";
+import { getTokenLogoUrl } from "@/lib/logos";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -22,6 +23,8 @@ export default function Home() {
   const [briefLoading, setBriefLoading] = useState(false);
   const [briefError, setBriefError] = useState("");
   const [selectedChain, setSelectedChain] = useState("base");
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Map chain to block explorer URL for tx links
   const getExplorerUrl = (chain: string, txHash: string) => {
@@ -30,6 +33,12 @@ export default function Home() {
       ethereum: "https://etherscan.io/tx/",
       arbitrum: "https://arbiscan.io/tx/",
       optimism: "https://optimistic.etherscan.io/tx/",
+      polygon: "https://polygonscan.com/tx/",
+      bsc: "https://bscscan.com/tx/",
+      avalanche: "https://snowtrace.io/tx/",
+      fantom: "https://ftmscan.com/tx/",
+      gnosis: "https://gnosisscan.io/tx/",
+      moonbeam: "https://moonscan.io/tx/",
     };
     return (explorers[chain] || explorers.base) + txHash;
   };
@@ -121,6 +130,32 @@ export default function Home() {
     return true;
   });
 
+  // Apply sorting
+  const sortedTransfers = [...filteredByDate].sort((a, b) => {
+    if (!sortKey) return 0;
+    let aVal: any, bVal: any;
+    switch (sortKey) {
+      case "date":
+        aVal = new Date(a.date).getTime();
+        bVal = new Date(b.date).getTime();
+        break;
+      case "token":
+        aVal = a.token.toLowerCase();
+        bVal = b.token.toLowerCase();
+        break;
+      case "amount":
+        aVal = parseFloat(a.amount) || 0;
+        bVal = parseFloat(b.amount) || 0;
+        break;
+      default:
+        return 0;
+    }
+    if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+    if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
+
+
   return (
     <main className="min-h-screen flex flex-col items-center justify-start px-4 py-16">
       <div className="max-w-4xl w-full text-center space-y-8">
@@ -147,6 +182,12 @@ export default function Home() {
               <option value="ethereum">Ethereum</option>
               <option value="arbitrum">Arbitrum</option>
               <option value="optimism">Optimism</option>
+              <option value="polygon">Polygon</option>
+              <option value="bsc">BNB Smart Chain</option>
+              <option value="avalanche">Avalanche</option>
+              <option value="fantom">Fantom</option>
+              <option value="gnosis">Gnosis</option>
+              <option value="moonbeam">Moonbeam</option>
             </select>
           </div>
           <label
@@ -261,12 +302,38 @@ export default function Home() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-12"></div></th>
-                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div></th>
-                  <th className="py-2 pr-4 text-right"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16 ml-auto"></div></th>
-                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div></th>
-                  <th className="py-2 pr-4"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div></th>
-                  <th className="py-2"><div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div></th>
+                  <th
+                    className="py-2 pr-4 cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortKey === "date") setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortKey("date"); setSortDir("asc"); }
+                    }}
+                  >
+                    Date {sortKey === "date" && (sortDir === "asc" ? "▲" : "▼")}
+                  </th>
+                  <th className="py-2 pr-4">Logo</th>
+                  <th
+                    className="py-2 pr-4 cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortKey === "token") setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortKey("token"); setSortDir("asc"); }
+                    }}
+                  >
+                    Token {sortKey === "token" && (sortDir === "asc" ? "▲" : "▼")}
+                  </th>
+                  <th
+                    className="py-2 pr-4 text-right cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortKey === "amount") setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortKey("amount"); setSortDir("asc"); }
+                    }}
+                  >
+                    Amount {sortKey === "amount" && (sortDir === "asc" ? "▲" : "▼")}
+                  </th>
+                  <th className="py-2 pr-4">Dir</th>
+                  <th className="py-2 pr-4">From</th>
+                  <th className="py-2 pr-4">To</th>
+                  <th className="py-2">Tx Hash</th>
                 </tr>
               </thead>
               <tbody>
@@ -346,7 +413,7 @@ export default function Home() {
 
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
-                Token Transfers ({filteredByDate.length}{hideScam ? " (spam hidden)" : ""})
+                Token Transfers ({sortedTransfers.length}{hideScam ? " (spam hidden)" : ""})
               </h2>
               <div className="flex items-center gap-3">
                 {/* Toggle switch */}
@@ -381,42 +448,93 @@ export default function Home() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="py-2 pr-4">Date</th>
-                  <th className="py-2 pr-4">Token</th>
-                  <th className="py-2 pr-4 text-right">Amount</th>
+                  <th
+                    className="py-2 pr-4 cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortKey === "date") setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortKey("date"); setSortDir("asc"); }
+                    }}
+                  >
+                    Date {sortKey === "date" && (sortDir === "asc" ? "▲" : "▼")}
+                  </th>
+                  <th className="py-2 pr-4">Logo</th>
+                  <th
+                    className="py-2 pr-4 cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortKey === "token") setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortKey("token"); setSortDir("asc"); }
+                    }}
+                  >
+                    Token {sortKey === "token" && (sortDir === "asc" ? "▲" : "▼")}
+                  </th>
+                  <th
+                    className="py-2 pr-4 text-right cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortKey === "amount") setSortDir(d => d === "asc" ? "desc" : "asc");
+                      else { setSortKey("amount"); setSortDir("asc"); }
+                    }}
+                  >
+                    Amount {sortKey === "amount" && (sortDir === "asc" ? "▲" : "▼")}
+                  </th>
+                  <th className="py-2 pr-4">Dir</th>
                   <th className="py-2 pr-4">From</th>
                   <th className="py-2 pr-4">To</th>
                   <th className="py-2">Tx Hash</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredByDate.map((tx, idx) => (
-                  <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
-                    <td className="py-2 pr-4">{tx.date}</td>
-                    <td className="py-2 pr-4 font-medium max-w-[120px] truncate" title={tx.token}>
-                      {tx.token}
-                    </td>
-                    <td className="py-2 pr-4 text-right max-w-[100px] truncate" title={tx.amount}>
-                      {tx.amount}
-                    </td>
-                    <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.from}>
-                      {shorten(tx.from)}
-                    </td>
-                    <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.to}>
-                      {shorten(tx.to)}
-                    </td>
-                    <td className="py-2 text-xs font-mono">
-                      <a
-                        href={getExplorerUrl(selectedChain, tx.txHash)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {shorten(tx.txHash)}
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                {sortedTransfers.map((tx, idx) => {
+                  const isIncoming = tx.to.toLowerCase() === walletAddress.toLowerCase();
+                  const isOutgoing = tx.from.toLowerCase() === walletAddress.toLowerCase();
+                  let direction = "";
+                  if (isIncoming && !isOutgoing) direction = "In";
+                  else if (isOutgoing && !isIncoming) direction = "Out";
+                  else if (isIncoming && isOutgoing) direction = "Self";
+                  else direction = "?";
+
+                  return (
+                    <tr key={idx} className="border-b border-gray-100 dark:border-gray-700">
+                      <td className="py-2 pr-4">{tx.date}</td>
+                      <td className="py-2 pr-4">
+                        <img
+                          src={getTokenLogoUrl(selectedChain, tx.tokenAddress)}
+                          alt=""
+                          className="w-5 h-5 rounded-full object-cover bg-gray-300 dark:bg-gray-600"
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            // Replace the image with a span containing the first letter
+                            const span = document.createElement("span");
+                            span.className = "w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300";
+                            span.textContent = tx.token?.charAt(0)?.toUpperCase() || "?";
+                            img.replaceWith(span);
+                          }}
+                        />
+                      </td>
+                      <td className="py-2 pr-4 font-medium max-w-[120px] truncate" title={tx.token}>
+                        {tx.token}
+                      </td>
+                      <td className="py-2 pr-4 text-right max-w-[100px] truncate" title={tx.amount}>
+                        {tx.amount}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <span className={`text-xs font-semibold ${direction === "In" ? "text-green-600" : direction === "Out" ? "text-red-600" : "text-gray-500"}`}>
+                          {direction}
+                        </span>
+                      </td>
+                      <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.from}>
+                        {shorten(tx.from)}
+                      </td>
+                      <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.to}>
+                        {shorten(tx.to)}
+                      </td>
+                      <td className="py-2 text-xs font-mono">
+                        <a href={getExplorerUrl(selectedChain, tx.txHash)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {shorten(tx.txHash)}
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {(startDate || endDate) && (

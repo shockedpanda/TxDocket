@@ -7,11 +7,17 @@ export const DONATION_ADDRESS = "0x745f4388EB7658a1367B66FEB11D4e342b7e3652";
 // Etherscan V2 base
 export const ETHERSCAN_API_BASE = "https://api.etherscan.io/v2/api";
 
-// Chain ID mapping for EVM chains (Etherscan V2)
+// src/lib/constants.ts (only the CHAIN_IDS part, leave the rest unchanged)
 export const CHAIN_IDS: Record<string, number> = {
   ethereum: 1,
   arbitrum: 42161,
   optimism: 10,
+  polygon: 137,
+  bsc: 56,
+  avalanche: 43114,
+  fantom: 250,
+  gnosis: 100,
+  moonbeam: 1284,
 };
 
 // Stablecoins (unchanged)
