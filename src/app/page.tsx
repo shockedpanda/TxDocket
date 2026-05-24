@@ -10,6 +10,8 @@ import { isScamToken } from "@/lib/utils";
 import StablecoinSummary from "@/components/StablecoinSummary";
 import FeedbackSection from "@/components/FeedbackSection";
 import { getTokenLogoUrl } from "@/lib/logos";
+import { useLabels } from "@/hooks/useLabels";
+import AddressCell from "@/components/AddressCell";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -25,6 +27,7 @@ export default function Home() {
   const [selectedChain, setSelectedChain] = useState("base");
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const { labels, saveLabel } = useLabels();
 
   // Map chain to block explorer URL for tx links
   const getExplorerUrl = (chain: string, txHash: string) => {
@@ -96,6 +99,7 @@ export default function Home() {
         body: JSON.stringify({
           transfers: transfers,
           walletAddress: walletAddress,
+          labels: labels,
         }),
       });
 
@@ -391,15 +395,22 @@ export default function Home() {
                 <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-6 border border-gray-200 dark:border-gray-700 text-left">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">📋 TxDocket Brief</h3>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(brief);
-                        alert("Brief copied to clipboard");
-                      }}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      📋 Copy
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={handleGenerateBrief}
+                        disabled={briefLoading}
+                        className="text-sm text-purple-600 hover:underline"
+                        title="Regenerate brief with latest labels"
+                      >
+                        🔄 Regenerate
+                      </button>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(brief); alert("Brief copied to clipboard"); }}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        📋 Copy
+                      </button>
+                    </div>
                   </div>
                   <div className="prose dark:prose-invert max-w-none text-sm whitespace-pre-line">
                     {brief}
@@ -410,7 +421,9 @@ export default function Home() {
                 </div>
               )}
             </div>
-
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            💡 Click the 🏷️ icon next to any address to assign a label (e.g., “Treasury”, “Supplier”). Labels are saved locally. After labeling, click 🔄 <strong>Regenerate</strong> on the brief to include them in the AI summary.
+          </p>
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
                 Token Transfers ({sortedTransfers.length}{hideScam ? " (spam hidden)" : ""})
@@ -521,11 +534,19 @@ export default function Home() {
                           {direction}
                         </span>
                       </td>
-                      <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.from}>
-                        {shorten(tx.from)}
+                      <td className="py-2 pr-4">
+                        <AddressCell
+                          address={tx.from}
+                          label={labels[tx.from.toLowerCase()]}
+                          onLabelSave={saveLabel}
+                        />
                       </td>
-                      <td className="py-2 pr-4 text-xs font-mono max-w-[100px] truncate" title={tx.to}>
-                        {shorten(tx.to)}
+                      <td className="py-2 pr-4">
+                        <AddressCell
+                          address={tx.to}
+                          label={labels[tx.to.toLowerCase()]}
+                          onLabelSave={saveLabel}
+                        />
                       </td>
                       <td className="py-2 text-xs font-mono">
                         <a href={getExplorerUrl(selectedChain, tx.txHash)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">

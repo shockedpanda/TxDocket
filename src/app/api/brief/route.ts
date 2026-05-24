@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { transfers, walletAddress } = await request.json();
+    const { transfers, walletAddress, labels } = await request.json();
 
     if (!transfers || !Array.isArray(transfers) || transfers.length === 0) {
       return NextResponse.json(
@@ -12,13 +12,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const transferSummary = transfers
+        const transferSummary = transfers
       .slice(0, 50)
-      .map(
-        (tx: any, idx: number) =>
-          `${idx + 1}. ${tx.date} | ${tx.token} | ${tx.amount} | from ${tx.from} | to ${tx.to} | tx ${tx.txHash}`
+      .map((tx: any, idx: number) => 
+        `${idx + 1}. ${tx.date} | ${tx.token} | ${tx.amount} | from ${tx.from} | to ${tx.to} | tx ${tx.txHash}`
       )
       .join("\n");
+
+    const labelNote = labels && Object.keys(labels).length > 0
+      ? "\n**Known counterparty labels (provided by the user):**\n" +
+        Object.entries(labels).map(([addr, lbl]) => `- ${addr}: ${lbl}`).join("\n")
+      : "";
 
     const prompt = `
 You are a financial documentation assistant. Write a professional "TxDocket Brief" for the following Base wallet activity.
@@ -28,12 +32,13 @@ Number of transactions provided: ${transfers.length}
 
 Transactions:
 ${transferSummary}
+${labelNote ? labelNote : ""}
 
 The brief should include:
 1. Period covered (earliest and latest transaction dates)
 2. Total number of transactions
 3. Stablecoin activity summary (if any USDC, USDT, DAI appear, estimate total inflow/outflow based on the data provided)
-4. Notable counterparties (addresses that appear frequently)
+4. Notable counterparties (addresses that appear frequently). If counterparty labels are provided, use them instead of raw addresses where applicable.
 5. Any unusual patterns (very large amounts, spam tokens, repetitive transfers)
 
 Keep the tone professional and concise. Do not invent data. If stablecoins are not present, state that. Limit the brief to 300 words.
