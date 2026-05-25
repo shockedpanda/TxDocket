@@ -350,8 +350,8 @@ export default function Home() {
           />
           <Card
             emoji="📋"
-            title="Review-Ready Reports"
-            description="TxDocket packs wallet activity into a clear handover ready for your accountant, auditor, or team."
+            title="Free TxDocket Review Pack"
+            description="Export a basic PDF with transaction schedule, stablecoin summary, and AI brief. A professional, monetised report with fiat values, risk flags, and reviewer questions is coming soon."
           />
         </div>
 
@@ -542,10 +542,36 @@ export default function Home() {
                       ></path>
                     </svg>
                   )}
-                  {pdfLoading ? "Generating PDF..." : "📦 Review Pack (PDF)"}
+                  {pdfLoading ? "Generating PDF..." : "📦 Review Pack (PDF)"} 
+                  <span className="text-xs opacity-70">(Free Basic)</span>
                 </button>
               </div>
             </div>
+
+            {/* Professional Report Preview (full width below action buttons) */}
+            <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900 border border-amber-200 dark:border-amber-700 rounded-xl text-left text-sm">
+              <h3 className="font-semibold mb-1">🔒 Professional TxDocket Report</h3>
+              <p className="text-gray-700 dark:text-gray-300 mb-2">
+                A comprehensive, monetised report with fiat values at transaction date, counterparty risk flags, and reviewer questions. Designed for accounting & compliance teams.
+              </p>
+              <div className="flex gap-3">
+                <a
+                  href="/sample-report.pdf"
+                  target="_blank"
+                  className="px-3 py-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  📄 View Sample
+                </a>
+                <a
+                  href="https://tally.so/r/Me7MKX"
+                  target="_blank"
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                >
+                  Request Professional Report
+                </a>
+              </div>
+            </div>
+
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
