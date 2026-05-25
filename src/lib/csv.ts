@@ -4,14 +4,27 @@ export function convertToCSV(transfers: any[]): string {
 
   // Determine if the data has been enriched with price fields
   const hasPriceData = transfers.some(
-    (tx: any) => tx.valueAtTx != null || tx.currentValue != null || tx.unrealizedGain != null
+    (tx: any) =>
+      tx.valueAtTx != null ||
+      tx.currentValue != null ||
+      tx.unrealizedGain != null ||
+      tx.histPrice != null ||
+      tx.currPrice != null
   );
 
   // Base headers
   const headers = ["Date", "Token", "Amount", "From", "To", "Tx Hash"];
   if (hasPriceData) {
     headers.push("Value at Tx (USD)", "Current Value (USD)", "Unrealized Gain (USD)");
+    
+    // Only add unit price columns if at least one row has them
+    const hasUnitPrices = transfers.some((tx: any) => tx.histPrice != null || tx.currPrice != null);
+    if (hasUnitPrices) {
+      headers.push("Hist Price (per token)", "Curr Price (per token)");
+    }
   }
+  
+  
 
   const escapeField = (field: string) => {
     if (field.includes(",") || field.includes('"') || field.includes("\n")) {
@@ -29,12 +42,18 @@ export function convertToCSV(transfers: any[]): string {
       tx.to,
       tx.txHash,
     ];
-    if (hasPriceData) {
-      const valueAtTx = tx.valueAtTx != null ? tx.valueAtTx.toFixed(2) : "";
-      const currentValue = tx.currentValue != null ? tx.currentValue.toFixed(2) : "";
-      const unrealizedGain = tx.unrealizedGain != null ? tx.unrealizedGain.toFixed(2) : "";
-      base.push(valueAtTx, currentValue, unrealizedGain);
-    }
+        if (hasPriceData) {
+          const valueAtTx = tx.valueAtTx != null ? tx.valueAtTx.toFixed(2) : "";
+          const currentValue = tx.currentValue != null ? tx.currentValue.toFixed(2) : "";
+          const unrealizedGain = tx.unrealizedGain != null ? tx.unrealizedGain.toFixed(2) : "";
+          base.push(valueAtTx, currentValue, unrealizedGain);
+          // Add unit prices if at least one row has them
+          if (transfers.some((t: any) => t.histPrice != null || t.currPrice != null)) {
+            const histPrice = tx.histPrice != null ? tx.histPrice.toFixed(6) : "";
+            const currPrice = tx.currPrice != null ? tx.currPrice.toFixed(6) : "";
+            base.push(histPrice, currPrice);
+          }
+        }
     return base;
   });
 

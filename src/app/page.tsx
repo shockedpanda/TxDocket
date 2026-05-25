@@ -592,6 +592,12 @@ export default function Home() {
                   className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   {enriching ? "Fetching Prices..." : "💲 Enrich with USD Values"}
+                  <span
+                    title="Fetches current and historical USD prices for the tokens in this schedule. Only well‑known tokens are supported. Results appear in the CSV export."
+                    className="ml-1 cursor-help text-amber-200 text-xs"
+                  >
+                    ⓘ
+                  </span>
                 </button>
               </div>
             </div>

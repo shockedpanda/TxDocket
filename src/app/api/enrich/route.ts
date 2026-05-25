@@ -24,17 +24,20 @@ export async function POST(request: NextRequest) {
 
     // 4. Enrich each transfer with calculated values
     const enriched = transfers.map((tx: any) => {
-      const amount = parseFloat(tx.amount) || 0;
-      const histKey = `${tx.tokenAddress?.toLowerCase()}_${tx.date}`;
-      const histPrice = historicalPrices[histKey] ?? null;
-      const currPrice = currentPrices[tx.tokenAddress?.toLowerCase()] ?? null;
+        const amount = parseFloat(tx.amount) || 0;
+        const histKey = `${tx.tokenAddress?.toLowerCase()}_${tx.date}`;
+        const histPrice = historicalPrices[histKey] ?? null;
+        const currPrice = currentPrices[tx.tokenAddress?.toLowerCase()] ?? null;
 
-      return {
-        ...tx,
-        valueAtTx: histPrice ? amount * histPrice : null,
-        currentValue: currPrice ? amount * currPrice : null,
-        unrealizedGain: histPrice && currPrice ? amount * (currPrice - histPrice) : null,
-      };
+        return {
+            ...tx,
+            valueAtTx: histPrice ? amount * histPrice : null,
+            currentValue: currPrice ? amount * currPrice : null,
+            unrealizedGain: histPrice && currPrice ? amount * (currPrice - histPrice) : null,
+            // New fields: unit prices
+            histPrice,   // price per token at transaction date
+            currPrice,   // current price per token
+        };
     });
 
     // Count how many transfers (rows) got a historical price

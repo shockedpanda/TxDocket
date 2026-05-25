@@ -22,11 +22,16 @@ function getCacheKey(addr: string, date: string) {
 
 /**
  * Helper: fetch JSON from a URL and handle errors gracefully.
- * Returns the parsed JSON or null if the call failed.
+ * Sends the API key as a header (x-cg-demo-api-key), which is the
+ * recommended method for CoinGecko's Demo API.
  */
 async function fetchJson(url: string): Promise<any | null> {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: {
+        "x-cg-demo-api-key": API_KEY || "",
+      },
+    });
     if (!res.ok) {
       console.warn("CoinGecko HTTP error:", res.status, await res.text().catch(() => ""));
       return null;
@@ -50,17 +55,28 @@ export async function fetchCurrentPrices(
   const platform = CHAIN_TO_PLATFORM[chain] || chain;
   if (!tokenAddresses.length) return {};
 
-  const addresses = tokenAddresses.join(",");
-  const url = `${COINGECKO_BASE}/simple/token_price/${platform}?contract_addresses=${addresses}&vs_currencies=usd&x_cg_demo_api_key=${API_KEY}`;
+  const BATCH_SIZE = 30;               // CoinGecko limit per request
+  const allPrices: Record<string, number> = {};
 
-  const data = await fetchJson(url);
-  if (!data) return {};
-  const prices: Record<string, number> = {};
-  for (const addr of tokenAddresses) {
-    const key = addr.toLowerCase();
-    prices[key] = data[key]?.usd || 0;
+  for (let i = 0; i < tokenAddresses.length; i += BATCH_SIZE) {
+    const batch = tokenAddresses.slice(i, i + BATCH_SIZE);
+    const addresses = batch.join(",");
+    const url = `${COINGECKO_BASE}/simple/token_price/${platform}?contract_addresses=${addresses}&vs_currencies=usd`;
+
+    const data = await fetchJson(url);
+    console.log("Current price batch", i, data);
+    if (data) {
+      for (const addr of batch) {
+        const key = addr.toLowerCase();
+        allPrices[key] = data[key]?.usd || 0;
+      }
+    } else {
+      // Optional: log which batch failed, but don't break
+      console.warn(`Batch starting at index ${i} failed for current prices`);
+    }
   }
-  return prices;
+
+  return allPrices;
 }
 
 export async function fetchHistoricalPrice(
@@ -72,7 +88,8 @@ export async function fetchHistoricalPrice(
   if (priceCache.has(cacheKey)) return priceCache.get(cacheKey)!;
 
   const platform = CHAIN_TO_PLATFORM[chain] || chain;
-  const url = `${COINGECKO_BASE}/simple/token_price/${platform}?contract_addresses=${tokenAddress}&vs_currencies=usd&date=${date}&x_cg_demo_api_key=${API_KEY}`;
+  // API key sent via header, not query string
+  const url = `${COINGECKO_BASE}/simple/token_price/${platform}?contract_addresses=${tokenAddress}&vs_currencies=usd&date=${date}`;
 
   const data = await fetchJson(url);
   if (data) {
