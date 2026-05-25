@@ -1,7 +1,4 @@
 // src/lib/pdf.ts
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-
 export async function generateReviewPackPDF(
   walletAddress: string,
   chain: string,
@@ -12,61 +9,38 @@ export async function generateReviewPackPDF(
 ) {
   const reportHTML = buildReportHTML(walletAddress, chain, transfers, stablecoinSummary, brief, labels);
 
-  // Create a fully visible container (will be removed immediately after capture)
-  const container = document.createElement("div");
-  container.innerHTML = reportHTML;
-  container.style.position = "fixed";
-  container.style.top = "0";
-  container.style.left = "0";
-  container.style.width = "800px";
-  container.style.opacity = "1";
-  container.style.zIndex = "9999";
-  container.style.color = "#000";               // ensure text is dark
-  container.style.background = "#fff";           // solid white background
-  container.style.pointerEvents = "none";      // prevent interaction
-  document.body.appendChild(container);
-
-  // Wait for fonts/layout to settle
-  await new Promise(resolve => setTimeout(resolve, 100));
-
-  try {
-    const canvas = await html2canvas(container, {
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      allowTaint: false,
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-    if (!imgData || imgData === "data:," || canvas.width === 0 || canvas.height === 0) {
-      throw new Error("Failed to render report as image (blank canvas)");
-    }
-
-    const imgWidth = 210;
-    const pageHeight = 297;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-    }
-
-    pdf.save(`TxDocket-ReviewPack-${walletAddress.slice(0, 8)}.pdf`);
-  } catch (error: any) {
-    console.error("PDF generation failed:", error);
-    alert("Failed to generate PDF. The report could not be rendered. Please try again.");
-  } finally {
-    document.body.removeChild(container);
+  // Open a new window and write the report directly to it
+  const win = window.open("", "_blank", "width=800,height=600");
+  if (!win) {
+    alert("Please allow pop‑ups to generate the review pack.");
+    return;
   }
+  win.document.write(`
+    <html>
+      <head>
+        <title>TxDocket Review Pack</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            color: #000;
+            background: #fff;
+            padding: 20px;
+          }
+          @media print {
+            @page { margin: 10mm; size: A4; }
+          }
+        </style>
+      </head>
+      <body>
+        ${reportHTML}
+      </body>
+    </html>
+  `);
+  win.document.close();
+
+  // Wait for the document to fully load, then trigger print
+  await new Promise(resolve => setTimeout(resolve, 800));
+  win.print();
 }
 
 // buildReportHTML remains exactly the same as before

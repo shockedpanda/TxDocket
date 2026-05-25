@@ -12,9 +12,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-        const transferSummary = transfers
-      .slice(0, 50)
-      .map((tx: any, idx: number) => 
+    const MAX_TX_FOR_BRIEF = 500;
+    const analyzedTransfers = transfers.slice(0, MAX_TX_FOR_BRIEF);
+
+    const transferSummary = analyzedTransfers
+      .map((tx: any, idx: number) =>
         `${idx + 1}. ${tx.date} | ${tx.token} | ${tx.amount} | from ${tx.from} | to ${tx.to} | tx ${tx.txHash}`
       )
       .join("\n");
@@ -28,7 +30,9 @@ export async function POST(request: NextRequest) {
 You are a financial documentation assistant. Write a professional "TxDocket Brief" for the following Base wallet activity.
 
 Wallet address: ${walletAddress || "N/A"}
-Number of transactions provided: ${transfers.length}
+Total wallet transactions: ${transfers.length}
+Number of transactions analyzed in this brief: ${analyzedTransfers.length}
+${transfers.length > MAX_TX_FOR_BRIEF ? `(Note: Only the ${MAX_TX_FOR_BRIEF} most recent transactions were analyzed due to processing limits. The full wallet has more.)` : ''}
 
 Transactions:
 ${transferSummary}
@@ -36,7 +40,7 @@ ${labelNote ? labelNote : ""}
 
 The brief should include:
 1. Period covered (earliest and latest transaction dates)
-2. Total number of transactions
+2. Total number of transactions (use the number of analyzed transactions, not the total wallet transactions)
 3. Stablecoin activity summary (if any USDC, USDT, DAI appear, estimate total inflow/outflow based on the data provided)
 4. Notable counterparties (addresses that appear frequently). If counterparty labels are provided, use them instead of raw addresses where applicable.
 5. Any unusual patterns (very large amounts, spam tokens, repetitive transfers)

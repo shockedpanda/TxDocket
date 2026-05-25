@@ -13,6 +13,7 @@ import { getTokenLogoUrl } from "@/lib/logos";
 import { useLabels } from "@/hooks/useLabels";
 import AddressCell from "@/components/AddressCell";
 import { generateReviewPackPDF } from "@/lib/pdf";
+import { generateProfessionalReportPDF } from "@/lib/pro-report";
 
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState("");
@@ -31,6 +32,7 @@ export default function Home() {
   const [pdfLoading, setPdfLoading] = useState(false);
   const { labels, saveLabel } = useLabels();
   const [enriching, setEnriching] = useState(false);
+  const [proReportLoading, setProReportLoading] = useState(false);
   const [pricesLoaded, setPricesLoaded] = useState(false);
   const [enrichStats, setEnrichStats] = useState<{ pricedCount: number; totalTxs: number } | null>(null);
 
@@ -177,6 +179,49 @@ export default function Home() {
       alert("Failed to generate PDF: " + (err.message || "Unknown error"));
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+  const handleDownloadProfessionalReport = async () => {
+    setProReportLoading(true);
+    try {
+      // Build stablecoin summary data (same as used for free PDF)
+      const stableTransfers = transfers.filter((tx) => {
+        const s = tx.token?.toUpperCase();
+        return ["USDC","USDT","DAI","BUSD","TUSD","USDP","GUSD","FRAX"].includes(s);
+      });
+      const totals: Record<string, { received: number; sent: number }> = {};
+      stableTransfers.forEach((tx) => {
+        const symbol = tx.token.toUpperCase();
+        const amount = parseFloat(tx.amount) || 0;
+        if (!totals[symbol]) totals[symbol] = { received: 0, sent: 0 };
+        if (tx.to.toLowerCase() === walletAddress.toLowerCase()) totals[symbol].received += amount;
+        else if (tx.from.toLowerCase() === walletAddress.toLowerCase()) totals[symbol].sent += amount;
+      });
+      const totalReceived = Object.values(totals).reduce((s, t) => s + t.received, 0);
+      const totalSent = Object.values(totals).reduce((s, t) => s + t.sent, 0);
+      const netFlow = totalReceived - totalSent;
+
+      const summary = {
+        received: totalReceived,
+        sent: totalSent,
+        netFlow,
+        breakdown: totals,
+      };
+
+      await generateProfessionalReportPDF(
+        walletAddress,
+        selectedChain,
+        sortedTransfers,   // already sorted/filtered
+        summary,
+        brief,
+        labels,
+        { start: startDate || "any", end: endDate || "any" }
+      );
+    } catch (err: any) {
+      alert("Failed to generate professional report: " + (err.message || "Unknown error"));
+    } finally {
+      setProReportLoading(false);
     }
   };
 
@@ -598,6 +643,14 @@ export default function Home() {
                   >
                     ⓘ
                   </span>
+                </button>
+                <button
+                  onClick={handleDownloadProfessionalReport}
+                  disabled={proReportLoading || !pricesLoaded}
+                  className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors"
+                  title={!pricesLoaded ? "Please enrich with USD values first" : "Generate the full professional report (for paying clients)"}
+                >
+                  {proReportLoading ? "Generating..." : "🔒 Professional Report"}
                 </button>
               </div>
             </div>
