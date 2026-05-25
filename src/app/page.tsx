@@ -647,10 +647,15 @@ export default function Home() {
                 <button
                   onClick={handleDownloadProfessionalReport}
                   disabled={proReportLoading || !pricesLoaded}
-                  className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors"
-                  title={!pricesLoaded ? "Please enrich with USD values first" : "Generate the full professional report (for paying clients)"}
+                  className="px-4 py-2 bg-red-700 hover:bg-red-800 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                  title={
+                    !pricesLoaded
+                      ? "Please enrich with USD values first"
+                      : "Download a free draft of the professional report. The final, polished version is a paid service."
+                  }
                 >
-                  {proReportLoading ? "Generating..." : "🔒 Professional Report"}
+                  {proReportLoading ? "Generating..." : "📄 Draft Professional Report"}
+                  <span className="text-xs text-red-200">(Free Draft)</span>
                 </button>
               </div>
             </div>
