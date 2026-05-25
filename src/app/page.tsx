@@ -659,11 +659,11 @@ export default function Home() {
         )}
 
         {/* Empty state */}
-        {!loading && filteredByDate.length === 0 && !error && (
+        {!loading && sortedTransfers.length === 0 && !error && (
           <div className="text-gray-500 dark:text-gray-400 text-sm">
             {transfers.length === 0
-              ? "No transactions to display. Try entering a different wallet address."
-              : "All transactions hidden by spam filter."}
+              ? "No transactions found for this address on the selected chain. Try a different address or chain."
+              : "All transactions hidden by spam filter. Toggle off 'Hide spam' to see them."}
           </div>
         )}
         
