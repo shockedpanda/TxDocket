@@ -1,27 +1,42 @@
 // src/lib/csv.ts
-import { Transfer } from "@/types"; // we'll create this type file in a moment
-
-export function convertToCSV(transfers: Transfer[]): string {
+export function convertToCSV(transfers: any[]): string {
   if (transfers.length === 0) return "";
 
-  // Headers matching our table columns
-  const headers = ["Date", "Token", "Amount", "From", "To", "Tx Hash"];
-  const rows = transfers.map((tx) => [
-    tx.date,
-    tx.token,
-    tx.amount,
-    tx.from,
-    tx.to,
-    tx.txHash,
-  ]);
+  // Determine if the data has been enriched with price fields
+  const hasPriceData = transfers.some(
+    (tx: any) => tx.valueAtTx != null || tx.currentValue != null || tx.unrealizedGain != null
+  );
 
-  // Escape fields that might contain commas or quotes
+  // Base headers
+  const headers = ["Date", "Token", "Amount", "From", "To", "Tx Hash"];
+  if (hasPriceData) {
+    headers.push("Value at Tx (USD)", "Current Value (USD)", "Unrealized Gain (USD)");
+  }
+
   const escapeField = (field: string) => {
     if (field.includes(",") || field.includes('"') || field.includes("\n")) {
       return `"${field.replace(/"/g, '""')}"`;
     }
     return field;
   };
+
+  const rows = transfers.map((tx: any) => {
+    const base = [
+      tx.date,
+      tx.token,
+      tx.amount,
+      tx.from,
+      tx.to,
+      tx.txHash,
+    ];
+    if (hasPriceData) {
+      const valueAtTx = tx.valueAtTx != null ? tx.valueAtTx.toFixed(2) : "";
+      const currentValue = tx.currentValue != null ? tx.currentValue.toFixed(2) : "";
+      const unrealizedGain = tx.unrealizedGain != null ? tx.unrealizedGain.toFixed(2) : "";
+      base.push(valueAtTx, currentValue, unrealizedGain);
+    }
+    return base;
+  });
 
   const csvLines = [
     headers.join(","),
@@ -31,7 +46,7 @@ export function convertToCSV(transfers: Transfer[]): string {
   return csvLines.join("\n");
 }
 
-export function downloadCSV(transfers: Transfer[]) {
+export function downloadCSV(transfers: any[]) {
   const csv = convertToCSV(transfers);
   if (!csv) return;
 

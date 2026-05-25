@@ -30,6 +30,9 @@ export default function Home() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [pdfLoading, setPdfLoading] = useState(false);
   const { labels, saveLabel } = useLabels();
+  const [enriching, setEnriching] = useState(false);
+  const [pricesLoaded, setPricesLoaded] = useState(false);
+  const [enrichStats, setEnrichStats] = useState<{ pricedCount: number; totalTxs: number } | null>(null);
 
   // Map chain to block explorer URL for tx links
   const getExplorerUrl = (chain: string, txHash: string) => {
@@ -53,6 +56,8 @@ export default function Home() {
     setTransfers([]);
     setBrief("");
     setBriefError("");
+    setPricesLoaded(false);
+    setEnrichStats(null);
 
     if (!walletAddress.trim()) {
       setError("Please enter a wallet address.");
@@ -172,6 +177,37 @@ export default function Home() {
       alert("Failed to generate PDF: " + (err.message || "Unknown error"));
     } finally {
       setPdfLoading(false);
+    }
+  };
+
+    const handleEnrichPrices = async () => {
+    setEnriching(true);
+    try {
+      const res = await fetch("/api/enrich", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transfers: sortedTransfers,   // use the sorted/filtered data
+          chain: selectedChain,
+        }),
+      });
+      const data = await res.json();
+      if (data.enriched) {
+        setTransfers(data.enriched);
+        setPricesLoaded(true);
+        const stats = data.stats;
+        if (stats) {
+          // Display a brief message; we'll use a state variable for the text
+          setEnrichStats(stats);
+        }
+      } else {
+        alert("Failed to enrich with prices.");
+      }
+    } catch (err) {
+      console.error("Enrichment failed", err);
+      alert("Something went wrong while fetching prices.");
+    } finally {
+      setEnriching(false);
     }
   };
 
@@ -486,6 +522,11 @@ export default function Home() {
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <h2 className="text-xl font-semibold text-left">
                 Token Transfers ({sortedTransfers.length}{hideScam ? " (spam hidden)" : ""})
+                {pricesLoaded && enrichStats && (
+                  <span className="text-sm text-green-600 ml-2">
+                    (Prices fetched for {enrichStats.pricedCount} of {enrichStats.totalTxs} transfers)
+                  </span>
+                )}
               </h2>
               <div className="flex items-center gap-3">
                 {/* Toggle switch */}
@@ -544,6 +585,13 @@ export default function Home() {
                   )}
                   {pdfLoading ? "Generating PDF..." : "📦 Review Pack (PDF)"} 
                   <span className="text-xs opacity-70">(Free Basic)</span>
+                </button>
+                <button
+                  onClick={handleEnrichPrices}
+                  disabled={enriching}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  {enriching ? "Fetching Prices..." : "💲 Enrich with USD Values"}
                 </button>
               </div>
             </div>
