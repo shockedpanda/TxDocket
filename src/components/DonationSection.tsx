@@ -59,7 +59,7 @@ export default function DonationSection({ address }: DonationSectionProps) {
       </div>
 
       <p className="text-xs text-gray-500 dark:text-gray-400">
-        Base network only. No smart contract – this is a simple wallet address.
+        Supports Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, and other EVM chains. No smart contract — this is a simple wallet address.
       </p>
     </div>
   );
